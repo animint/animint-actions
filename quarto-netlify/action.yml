@@ -1,5 +1,5 @@
-name: quarto-netlify-preview
-description: 'Deploy quarto preview to netlify'
+name: quarto-netlify
+description: 'Deploy quarto site to netlify'
 inputs:
   netlify_auth_token:
     description: 'Netlify auth token'
