@@ -27,9 +27,9 @@ runs:
 
     - name: Get pull request id
       run: |
-        PR_OR_NOTHING=$(echo "${{ github.ref_name }}" | tr / -)
-        [ "$PR_OR_NOTHING" == "" ] && DEPLOY_FLAGS=--prod || DEPLOY_FLAGS="--alias $PR_OR_NOTHING"
-        echo "pr_id=$PR_OR_NOTHING" >> $GITHUB_ENV
+        PR_OR_MAIN=$(echo "${{ github.ref_name }}" | tr / -)
+        [ "$PR_OR_MAIN" == "main" ] && DEPLOY_FLAGS=--prod || DEPLOY_FLAGS="--alias $PR_OR_MAIN"
+        echo "pr_id=$PR_OR_MAIN" >> $GITHUB_ENV
         echo "deploy_flags=$DEPLOY_FLAGS" >> $GITHUB_ENV
       shell: bash
 
