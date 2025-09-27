@@ -21,6 +21,10 @@ inputs:
 runs:
   using: "composite"
   steps:
+    - name: Uninstall netlify cli
+      run: npm uninstall netlify-cli -g
+      shell: bash
+
     - name: Install netlify cli
       run: npm install netlify-cli -g
       shell: bash
