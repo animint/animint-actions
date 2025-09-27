@@ -25,10 +25,12 @@ runs:
       name: setup-node https://github.com/actions/setup-node?tab=readme-ov-file#usage
       with:
         node-version: 21
+    - name: https://www.npmjs.com/package/@netlify/edge-functions-bootstrap
+      run: npm i @netlify/edge-functions-bootstrap
+      shell: bash
     - name: Install netlify cli
       run: npm install netlify-cli -g
       shell: bash
-
     - name: Get pull request id
       run: |
         PR_OR_MAIN=$(echo "${{ github.ref_name }}" | tr / -)
