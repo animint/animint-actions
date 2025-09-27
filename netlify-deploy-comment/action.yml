@@ -23,6 +23,8 @@ runs:
   steps:
     - uses: actions/setup-node@v5
       name: setup-node https://github.com/actions/setup-node?tab=readme-ov-file#usage
+      with:
+        node-version: 20
     - name: Install netlify cli
       run: npm install netlify-cli -g
       shell: bash
