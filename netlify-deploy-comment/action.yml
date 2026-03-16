@@ -8,7 +8,7 @@ inputs:
     description: 'Netlify site id'
     required: true
   pat_github_pr:
-    description: 'Github token'
+    description: 'Github token with PR permission'
   path:
     description: 'Path to rendered site'
     required: true
@@ -42,7 +42,7 @@ runs:
 
     - name: Add url comment
       if: ${{ github.event.action == 'opened' || github.event.action == 'reopened' }}
-      uses: peter-evans/create-or-update-comment@v2
+      uses: peter-evans/create-or-update-comment@v5
       with:
         token: ${{ inputs.pat_github_pr }}
         issue-number: ${{ github.event.pull_request.number }}
