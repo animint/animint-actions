@@ -1,0 +1,50 @@
+name: netlify-simple
+description: 'Deploy then add/update PR comment'
+inputs:
+  netlify_auth_token:
+    description: 'Netlify auth token'
+    required: true
+  netlify_site_id:
+    description: 'Netlify site id'
+    required: true
+  path:
+    description: 'Path to rendered site'
+    required: true
+    default: '.'
+
+runs:
+  using: "composite"
+  steps:
+    - uses: actions/setup-node@v5
+      name: setup-node https://github.com/actions/setup-node?tab=readme-ov-file#usage
+      with:
+        node-version: 21
+    - name: https://www.npmjs.com/package/@netlify/edge-functions-bootstrap
+      run: npm i @netlify/edge-functions-bootstrap -g
+      shell: bash
+    - name: Install netlify cli
+      run: npm install netlify-cli -g
+      shell: bash
+    - name: Get pull request id
+      run: |
+        PR_OR_MAIN=$(echo "${{ github.ref_name }}" | tr / -)
+        [ "$PR_OR_MAIN" == "main" ] && DEPLOY_FLAGS=--prod || DEPLOY_FLAGS="--alias $PR_OR_MAIN"
+        echo "pr_id=$PR_OR_MAIN" >> $GITHUB_ENV
+        echo "deploy_flags=$DEPLOY_FLAGS" >> $GITHUB_ENV
+      shell: bash
+    - name: Deploy to netlify
+      env:
+        NETLIFY_AUTH_TOKEN: ${{ inputs.netlify_auth_token }}
+        NETLIFY_SITE_ID: ${{ inputs.netlify_site_id }}
+      run: |
+        netlify deploy ${{ env.deploy_flags }} --dir ${{ inputs.path }} | tee netlify.log
+        NETLIFY_URL=$(grep netlify.app netlify.log | sed 's/.*https/https/' | sed 's/netlify.app.*/netlify.app/')
+        echo "netlify_url=$NETLIFY_URL" >> $GITHUB_ENV
+        echo env.netlify_url has a URL with no trailing /
+      shell: bash
+    - name: GH-bot comment
+      run: |
+        echo ${{ env.netlify_url }} | sed "s/\(.*\)/<\1>/" > comment.md
+        git diff --name-only $GITHUB_BASE_REF | sed "s#^#<${{ env.netlify_url }}/#" | sed "s#vignettes\(/.*\).[Rrq]md#doc\1>#" >> comment.md
+        cml comment update comment.md
+      shell: bash

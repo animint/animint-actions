@@ -1,0 +1,37 @@
+The container line is necessary for the github comment bot.
+
+```yml
+name: netlify simple
+
+on:
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  comment:
+    runs-on: ubuntu-latest
+    container: ghcr.io/iterative/cml:0-dvc2-base1
+    env:
+      GITHUB_PAT: ${{ secrets.GITHUB_TOKEN }}
+      repo_token: ${{ secrets.GITHUB_TOKEN }}
+    steps:
+      - uses: actions/checkout@v3
+      - name: Setup r2u
+        uses: eddelbuettel/github-actions/r2u-setup@master
+      - name: install R+ package
+        run: |
+          /usr/bin/sudo DEBIAN_FRONTEND=noninteractive apt update -y -qq
+          /usr/bin/sudo DEBIAN_FRONTEND=noninteractive apt install tidy texlive texlive-fonts-extra texlive-extra-utils r-recommended r-cran-devtools -y
+          R -e "devtools::install_dev_deps()"
+          R CMD build .
+          R CMD INSTALL *.tar.gz
+          R -e 'litedown::fuse_site("site")'
+        shell: bash
+          
+      - name: netlify deploy
+        uses: animint/animint-actions/netlify-simple@main
+        with:
+          netlify_auth_token: ${{ secrets.NETLIFY_AUTH_TOKEN }}
+          netlify_site_id: ${{ secrets.NETLIFY_SITE_ID }}
+          path: site
+```
