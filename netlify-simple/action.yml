@@ -15,6 +15,7 @@ inputs:
 runs:
   using: "composite"
   steps:
+    - uses: iterative/setup-cml@v2
     - uses: actions/setup-node@v5
       name: setup-node https://github.com/actions/setup-node?tab=readme-ov-file#usage
       with:
