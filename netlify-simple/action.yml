@@ -42,9 +42,21 @@ runs:
         echo "netlify_url=$NETLIFY_URL" >> $GITHUB_ENV
         echo env.netlify_url has a URL with no trailing /
       shell: bash
-    - name: GH-bot comment
+    - name: save diff in comment.md
       run: |
         echo ${{ env.netlify_url }} | sed "s/\(.*\)/<\1>/" > comment.md
         git diff --name-only $GITHUB_BASE_REF | sed "s#^#<${{ env.netlify_url }}/#" | sed "s#vignettes\(/.*\).[Rrq]md#doc\1>#" >> comment.md
-        cml comment update comment.md
+    - name: post comment.md
+      env:
+        TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        PR_NUMBER: ${{ github.event.number }}
+      run: |
+        ISSUES_API=https://api.github.com/repos/$GITHUB_REPOSITORY/issues
+        CURL='curl -L -H "Accept: application/vnd.github+json" -H "X-GitHub-Api-Version: 2026-03-10"'
+        PR_API=$ISSUES_API/$PR_NUMBER/comments
+        FIRST_COMMENT_ID=$($CURL $PR_API?per_page=1 | grep '"id"' | head -1 | sed s/[^0-9]//g)
+        if [ "$FIRST_COMMENT_ID" == "" ]; then CMD=$PR_API; else CMD=$ISSUES_API/comments/$FIRST_COMMENT_ID; fi; echo $CMD
+        MD=$(sed 's/"/\\"/g' comment.md | awk '$1=$1' ORS='\\n')
+        echo '{"body":"'$MD'"}' > pr-comment.json
+        $CURL -X PATCH -H "Authorization: Bearer $TOKEN" $CMD -d "@pr-comment.json"
       shell: bash
