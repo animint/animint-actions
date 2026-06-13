@@ -72,8 +72,11 @@ runs:
         VERSION=2026-03-10
         ACCEPT=application/vnd.github+json
         ISSUES_API=https://api.github.com/repos/$GITHUB_REPOSITORY/issues
+        echo $ISSUES_API
         PR_API=$ISSUES_API/$PR_NUMBER/comments
+        echo $PR_API
         curl --no-progress-meter -L -H "Accept: $ACCEPT" -H "X-GitHub-Api-Version: $VERSION" $PR_API?per_page=$COMMENT_NUMBER > comments.json
+        cat comments.json
         grep '^    "id"' comments.json | sed s/[^0-9]//g > comment_ids.txt
         cat comment_ids.txt
         N_COMMENTS=$(cat comment_ids.txt | wc -l)
