@@ -16,6 +16,7 @@ inputs:
     required: true
 
 runs:
+  using: "composite"
   steps:
     - name: Retrieve branch references
       run: |
