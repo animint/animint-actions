@@ -14,6 +14,10 @@ inputs:
   token:
     description: 'GitHub token with issue commenting permissions'
     required: true
+  comment_number:
+    description: 'Which comment to edit, from top of page'
+    required: false
+    default: 1
 
 runs:
   using: "composite"
@@ -63,14 +67,20 @@ runs:
       env:
         TOKEN: ${{ inputs.token }}
         PR_NUMBER: ${{ github.event.number }}
+        COMMENT_NUMBER: ${{ inputs.comment_number }}
       run: |
         VERSION=2026-03-10
         ACCEPT=application/vnd.github+json
         ISSUES_API=https://api.github.com/repos/$GITHUB_REPOSITORY/issues
         PR_API=$ISSUES_API/$PR_NUMBER/comments
-        FIRST_COMMENT_ID=$(curl --no-progress-meter -L -H "Accept: $ACCEPT" -H "X-GitHub-Api-Version: $VERSION" $PR_API?per_page=1 | grep '^    "id"' | head -1 | sed s/[^0-9]//g)
-        echo $FIRST_COMMENT_ID
-        if [ "$FIRST_COMMENT_ID" == "" ]; then CMD=$PR_API; else CMD=$ISSUES_API/comments/$FIRST_COMMENT_ID; fi
+        curl --no-progress-meter -L -H "Accept: $ACCEPT" -H "X-GitHub-Api-Version: $VERSION" $PR_API?per_page=$COMMENT_NUMBER > comments.json
+        grep '^    "id"' comments.json | sed s/[^0-9]//g > comment_ids.txt
+        cat comment_ids.txt
+        N_COMMENTS=$(cat comment_ids.txt | wc -l)
+        echo $N_COMMENTS
+        COMMENT_ID=$(tail -1 comment_ids.txt)
+        echo $COMMENT_ID
+        if [ "$N_COMMENTS" -lt "$COMMENT_NUMBER" ]; then CMD=$PR_API; else CMD=$ISSUES_API/comments/$COMMENT_ID; fi
         echo $CMD
         MD=$(sed 's/"/\\"/g' comment.md | awk '$1=$1' ORS='\\n')
         echo '{"body":"'$MD'"}' > pr-comment.json
