@@ -1,33 +1,34 @@
-The container line is necessary for the github comment bot.
+The `fetch-depth: 0` line is necessary for getting links to changed web pages in the PR comment.
 
 ```yml
-name: netlify simple
+name: build site
 
 on:
   pull_request:
   workflow_dispatch:
 
 jobs:
-  comment:
+  litedown:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
-      - name: Setup r2u
-        uses: eddelbuettel/github-actions/r2u-setup@master
-      - name: install R+ package
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+      - name: Setup
+        uses: eddelbuettel/github-actions/r-ci@master
+      - name: Dependencies
+        run: ./run.sh install_all
+      - name: install package and build site
         run: |
-          /usr/bin/sudo DEBIAN_FRONTEND=noninteractive apt update -y -qq
-          /usr/bin/sudo DEBIAN_FRONTEND=noninteractive apt install tidy texlive texlive-fonts-extra texlive-extra-utils r-recommended r-cran-devtools -y
-          R -e "devtools::install_dev_deps()"
           R CMD build .
           R CMD INSTALL *.tar.gz
           R -e 'litedown::fuse_site("site")'
         shell: bash
-          
       - name: netlify deploy
         uses: animint/animint-actions/netlify-simple@main
         with:
           netlify_auth_token: ${{ secrets.NETLIFY_AUTH_TOKEN }}
           netlify_site_id: ${{ secrets.NETLIFY_SITE_ID }}
           path: site
+          token: ${{ secrets.GITHUB_TOKEN }}
 ```
