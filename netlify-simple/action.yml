@@ -53,7 +53,7 @@ runs:
     - name: save diff in comment.md
       run: |
         echo ${{ env.netlify_url }} | sed "s/\(.*\)/<\1>/" > comment.md
-        git diff --name-only main | sed "s#^#<https://123-merge--atime-docs.netlify.app/#" | sed "s#vignettes\(/.*\).[Rrq]md#doc\1>#" | sed s=man/=manual#sec:man-= | sed 's/.Rd$/>/' | grep  '/\(manual\|doc\)' > diff.md
+        git diff --name-only $GITHUB_BASE_REF | sed "s#^#<${{ env.netlify_url }}/#" | sed "s#vignettes\(/.*\).[Rrq]md#doc\1>#" | sed s=man/=manual#sec:man-= | sed 's/.Rd$/>/' | grep  '/\(manual\|doc\)' > diff.md
         if [ -s "diff.md" ]; then echo "has modifications in these web pages:" >> comment.md; cat diff.md >> comment.md; fi
       shell: bash
     - name: post comment.md
