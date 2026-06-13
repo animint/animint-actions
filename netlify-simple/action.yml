@@ -11,6 +11,9 @@ inputs:
     description: 'Path to rendered site'
     required: true
     default: '.'
+  token:
+    description: 'GitHub token with issue commenting permissions'
+    required: true
 
 runs:
   using: "composite"
@@ -46,9 +49,10 @@ runs:
       run: |
         echo ${{ env.netlify_url }} | sed "s/\(.*\)/<\1>/" > comment.md
         git diff --name-only $GITHUB_BASE_REF | sed "s#^#<${{ env.netlify_url }}/#" | sed "s#vignettes\(/.*\).[Rrq]md#doc\1>#" >> comment.md
+      shell: bash
     - name: post comment.md
       env:
-        TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        TOKEN: ${{ inputs.token }}
         PR_NUMBER: ${{ github.event.number }}
       run: |
         ISSUES_API=https://api.github.com/repos/$GITHUB_REPOSITORY/issues

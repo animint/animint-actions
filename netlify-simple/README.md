@@ -10,10 +10,6 @@ on:
 jobs:
   comment:
     runs-on: ubuntu-latest
-    container: ghcr.io/iterative/cml:0-dvc2-base1
-    env:
-      GITHUB_PAT: ${{ secrets.GITHUB_TOKEN }}
-      repo_token: ${{ secrets.GITHUB_TOKEN }}
     steps:
       - uses: actions/checkout@v3
       - name: Setup r2u
