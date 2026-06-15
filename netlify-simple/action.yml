@@ -11,7 +11,7 @@ inputs:
     description: 'Path to rendered site'
     required: true
     default: '.'
-  token:
+  pr_comment_token:
     description: 'GitHub token with issue commenting permissions'
     required: true
   tag:
@@ -84,7 +84,7 @@ runs:
     - name: post diff in comment
       if: ${{ github.event_name == 'pull_request' }}
       env:
-        TOKEN: ${{ inputs.token }}
+        PR_COMMENT_TOKEN: ${{ inputs.pr_comment_token }}
         PR_NUMBER: ${{ github.event.number }}
       shell: bash
       run: |
@@ -102,4 +102,4 @@ runs:
         if [ "$COMMENT_NUMBER" == "" ]; then CMD=$PR_API; else CMD=$ISSUES_API/comments/$COMMENT_NUMBER; fi; echo $CMD
         MD=$(sed 's/"/\\"/g' comment.md | awk '$1=$1' ORS='\\n')
         echo '{"body":"'$MD'"}' > pr-comment.json
-        curl --no-progress-meter -L -H "Accept: $ACCEPT" -H "X-GitHub-Api-Version: $VERSION" -X POST -H "Authorization: Bearer $TOKEN" $CMD -d "@pr-comment.json"
+        curl --no-progress-meter -L -H "Accept: $ACCEPT" -H "X-GitHub-Api-Version: $VERSION" -X POST -H "Authorization: Bearer $PR_COMMENT_TOKEN" $CMD -d "@pr-comment.json"
