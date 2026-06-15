@@ -1,4 +1,10 @@
-The `fetch-depth: 0` line is necessary for getting links to changed web pages in the PR comment.
+This action is for R package documentation web sites created using litedown.
+Your yml code should do as in the example below.
+
+* Checkout with `fetch-depth: 0` so that base branch is available, for getting links to changed web pages in the PR comment.
+* Install R and dependencies of your package.
+* Build, install, build site for your package.
+* Call this action.
 
 ```yml
 name: build site
@@ -25,10 +31,10 @@ jobs:
           R -e 'litedown::fuse_site("site")'
         shell: bash
       - name: netlify deploy
-        uses: animint/animint-actions/netlify-simple@main
+        uses: animint/animint-actions/netlify-litedown@main
         with:
           netlify_auth_token: ${{ secrets.NETLIFY_AUTH_TOKEN }}
           netlify_site_id: ${{ secrets.NETLIFY_SITE_ID }}
           path: site
-          token: ${{ secrets.GITHUB_TOKEN }}
+          pr_comment_token: ${{ secrets.GITHUB_TOKEN }}
 ```
