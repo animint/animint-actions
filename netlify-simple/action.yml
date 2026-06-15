@@ -65,6 +65,7 @@ runs:
       env:
         PR_NUMBER: ${{ github.event.number }}
         TAG: ${{ inputs.tag }}
+      shell: bash
       run: |
         curl --no-progress-meter -L -H "Accept: application/vnd.github+json" -H "X-GitHub-Api-Version: 2026-03-10" https://api.github.com/repos/$GITHUB_REPOSITORY/issues/$PR_NUMBER/comments > comments.json
         echo > comment-number.txt
@@ -83,7 +84,7 @@ runs:
     - name: post diff in comment
       if: ${{ github.event_name == 'pull_request' }}
       env:
-        TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        TOKEN: ${{ inputs.token }}
         PR_NUMBER: ${{ github.event.number }}
       shell: bash
       run: |
