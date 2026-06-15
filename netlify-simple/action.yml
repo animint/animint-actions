@@ -33,11 +33,6 @@ runs:
         git switch "${GITHUB_HEAD_REF}"
     - uses: actions/setup-node@v6
       name: setup-node https://github.com/actions/setup-node?tab=readme-ov-file#usage
-      with:
-        node-version: 24
-    - name: https://www.npmjs.com/package/@netlify/edge-functions-bootstrap
-      shell: bash
-      run: npm i @netlify/edge-functions-bootstrap -g
     - name: Install netlify cli
       shell: bash
       run: npm install netlify-cli -g
