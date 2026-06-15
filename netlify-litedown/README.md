@@ -10,8 +10,12 @@ Your yml code should do as in the example below.
 name: build site
 
 on:
+  push:
+    branches:
+      - main
   pull_request:
-  workflow_dispatch:
+    branches:
+      - main
 
 jobs:
   litedown:
