@@ -1,4 +1,4 @@
-name: netlify-simple
+name: netlify litedown site
 description: 'Deploy then add/update PR comment'
 inputs:
   netlify_auth_token:
@@ -14,83 +14,91 @@ inputs:
   token:
     description: 'GitHub token with issue commenting permissions'
     required: true
-  comment_number:
-    description: 'Which comment to edit, from top of page'
+  tag:
+    description: 'Which comment to edit, tag should be unique across actions in repo'
     required: false
-    default: 1
+    default: 'litedown docs'
+  main_branch:
+    description: 'branch for netlify production deployment'
+    required: false
+    default: 'main'
 
 runs:
   using: "composite"
   steps:
-    - name: Retrieve branch references
+    - name: Retrieve branch references, necessary for git diff main
+      shell: bash
       run: |
         git switch "${GITHUB_BASE_REF}"
         git switch "${GITHUB_HEAD_REF}"
-      shell: bash
-    - uses: actions/setup-node@v5
+    - uses: actions/setup-node@v6
       name: setup-node https://github.com/actions/setup-node?tab=readme-ov-file#usage
       with:
-        node-version: 21
+        node-version: 24
     - name: https://www.npmjs.com/package/@netlify/edge-functions-bootstrap
+      shell: bash
       run: npm i @netlify/edge-functions-bootstrap -g
-      shell: bash
     - name: Install netlify cli
-      run: npm install netlify-cli -g
       shell: bash
-    - name: Get pull request id
+      run: npm install netlify-cli -g
+    - name: Get netlify deploy flags
+      shell: bash
+      env:
+        MAIN_BRANCH: ${{ inputs.main_branch }}
       run: |
         PR_OR_MAIN=$(echo "${{ github.ref_name }}" | tr / -)
-        [ "$PR_OR_MAIN" == "main" ] && DEPLOY_FLAGS=--prod || DEPLOY_FLAGS="--alias $PR_OR_MAIN"
+        [ "$PR_OR_MAIN" == "$MAIN_BRANCH" ] && DEPLOY_FLAGS=--prod || DEPLOY_FLAGS="--alias $PR_OR_MAIN"
         echo "pr_id=$PR_OR_MAIN" >> $GITHUB_ENV
         echo "deploy_flags=$DEPLOY_FLAGS" >> $GITHUB_ENV
-      shell: bash
     - name: Deploy to netlify
       env:
         NETLIFY_AUTH_TOKEN: ${{ inputs.netlify_auth_token }}
         NETLIFY_SITE_ID: ${{ inputs.netlify_site_id }}
+      shell: bash
       run: |
         netlify deploy ${{ env.deploy_flags }} --dir ${{ inputs.path }} | tee netlify.log
         NETLIFY_URL=$(grep netlify.app netlify.log | sed 's/.*https/https/' | sed 's/netlify.app.*/netlify.app/')
         echo "netlify_url=$NETLIFY_URL" >> $GITHUB_ENV
         echo env.netlify_url has a URL with no trailing /
-      shell: bash
-    - name: save diff in comment.md
+    - name: comments.json
+      if: ${{ github.event_name == 'pull_request' }}
+      env:
+        PR_NUMBER: ${{ github.event.number }}
+        TAG: ${{ inputs.tag }}
       run: |
-        echo ${{ env.netlify_url }} | sed "s/\(.*\)/<\1>/" > comment.md
+        curl --no-progress-meter -L -H "Accept: application/vnd.github+json" -H "X-GitHub-Api-Version: 2026-03-10" https://api.github.com/repos/$GITHUB_REPOSITORY/issues/$PR_NUMBER/comments > comments.json
+        echo > comment-number.txt
+        echo "<!-- automatic comment for $TAG -->" > comment.md
+    - name: comment-number.txt
+      if: ${{ github.event_name == 'pull_request' }}
+      shell: node {0}
+      run: |
+        fs = require('fs');
+        tag = fs.readFileSync('comment.md', 'utf-8');
+        content = fs.readFileSync('comments.json', 'utf-8');
+        prc = JSON.parse(content);
+        flist = prc.filter((o) => { return o.body.startsWith(tag); });
+        if(flist.length == 0) process.exit(0);
+        fs.writeFileSync('comment-number.txt', flist[0].id+"");
+    - name: post diff in comment
+      if: ${{ github.event_name == 'pull_request' }}
+      env:
+        TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        PR_NUMBER: ${{ github.event.number }}
+      shell: bash
+      run: |
+        ISSUES_API=https://api.github.com/repos/$GITHUB_REPOSITORY/issues
+        PR_API=$ISSUES_API/$PR_NUMBER/comments
+        VERSION=2026-03-10
+        ACCEPT=application/vnd.github+json
+        COMMENT_NUMBER=$(cat comment-number.txt)
+        echo ${{ env.netlify_url }} | sed "s/\(.*\)/<\1>/" >> comment.md
         cat comment.md
         git diff --name-only $GITHUB_BASE_REF | sed "s#^#<${{ env.netlify_url }}/#" | sed "s#vignettes\(/.*\).[Rrq]md#doc\1>#" | sed s=man/=manual#sec:man-= | sed 's/.Rd$/>/' | grep  '/\(manual\|doc\)' > diff.md
         cat diff.md
         if [ -s "diff.md" ]; then echo "has modifications in these web pages:" >> comment.md; cat diff.md >> comment.md; fi
         cat comment.md
-      shell: bash
-    - name: post comment.md
-      env:
-        TOKEN: ${{ inputs.token }}
-        PR_NUMBER: ${{ github.event.number }}
-        COMMENT_NUMBER: ${{ inputs.comment_number }}
-      run: |
-        VERSION=2026-03-10
-        ACCEPT=application/vnd.github+json
-        ISSUES_API=https://api.github.com/repos/$GITHUB_REPOSITORY/issues
-        echo $ISSUES_API
-        PR_API=$ISSUES_API/$PR_NUMBER/comments
-        echo $PR_API
-        curl --no-progress-meter -L -H "Accept: $ACCEPT" -H "X-GitHub-Api-Version: $VERSION" $PR_API?per_page=$COMMENT_NUMBER > comments.json
-        cat comments.json
-        echo '    "id":so grep does not pipefail' >> comments.json
-        cat comments.json
-        grep '^    "id"' comments.json | sed s/[^0-9]//g > comment_ids_0.txt
-        cat comment_ids_0.txt
-        head -n -1 comment_ids_0.txt > comment_ids.txt
-        cat comment_ids.txt
-        N_COMMENTS=$(cat comment_ids.txt | wc -l)
-        echo $N_COMMENTS
-        COMMENT_ID=$(tail -1 comment_ids.txt)
-        echo $COMMENT_ID
-        if [ "$N_COMMENTS" -lt "$COMMENT_NUMBER" ]; then CMD=$PR_API; else CMD=$ISSUES_API/comments/$COMMENT_ID; fi
-        echo $CMD
+        if [ "$COMMENT_NUMBER" == "" ]; then CMD=$PR_API; else CMD=$ISSUES_API/comments/$COMMENT_NUMBER; fi; echo $CMD
         MD=$(sed 's/"/\\"/g' comment.md | awk '$1=$1' ORS='\\n')
         echo '{"body":"'$MD'"}' > pr-comment.json
-        cat pr-comment.json
         curl --no-progress-meter -L -H "Accept: $ACCEPT" -H "X-GitHub-Api-Version: $VERSION" -X POST -H "Authorization: Bearer $TOKEN" $CMD -d "@pr-comment.json"
-      shell: bash
