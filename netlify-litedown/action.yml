@@ -94,7 +94,7 @@ runs:
         COMMENT_NUMBER=$(cat comment-number.txt)
         echo ${{ env.netlify_url }} | sed "s/\(.*\)/<\1>/" >> comment.md
         cat comment.md
-        git diff --name-only $GITHUB_BASE_REF | sed "s#^#<${{ env.netlify_url }}/#" | sed "s#vignettes\(/.*\).[Rrq]md#doc\1>#" | sed s=man/=manual#sec:man-= | sed 's/.Rd$/>/' | grep  '/\(manual\|doc\)' > diff.md
+        git diff --name-only $GITHUB_BASE_REF | sed "s#^#<${{ env.netlify_url }}/#" | sed "s#vignettes\(/.*\).[Rrq]md#doc\1>#" | sed s=man/=manual#sec:man-= | sed 's/.Rd$/>/' | { grep '/\(manual\|doc\)' || true; } > diff.md
         cat diff.md
         if [ -s "diff.md" ]; then echo git diff shows modifications in the source file of: >> comment.md; cat diff.md >> comment.md; fi
         cat comment.md
